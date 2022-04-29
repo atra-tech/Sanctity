@@ -1,0 +1,57 @@
+TARGET=alchymist
+
+CC=x86_64-w64-mingw32-gcc
+
+SRC=src
+ASM=asm
+OBJ=obj-w32
+BUILD_DIR=win32
+
+SRCS=$(wildcard $(SRC)/*.c)
+OBJS=$(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SRCS))
+ASMS=$(patsubst $(SRC)/%.c, $(ASM)/%.S, $(SRCS))
+
+TARGET_PATH=$(BUILD_DIR)/$(TARGET).exe
+
+LIBDIR=lib-w32
+LIBS=$(LIBDIR)/libatra-w32.a $(LIBDIR)/liblua54.a
+
+HEADER_FLAGS=-Iinclude/atra -Iinclude/lua -I./vendor/cglm/include
+
+INC_DIRS=$(shell find $(SRC) -type d)
+INC_FLAGS=$(addprefix -I,$(INC_DIRS))
+
+LDFLAGS=-L. -L./win32 -static-libgcc -lmingw32 -lm -lSDL2 -lSDL2main -lSDL2_image -lSDL2_net -lopengl32 -pthread -lOpenAL32 -Wl,-subsystem,windows
+CFLAGS=$(INC_FLAGS) $(HEADER_FLAGS) -MP -MMD -Og -Wall -Wextra -Wpedantic -g -std=c99
+
+$(TARGET_PATH): $(BUILD_DIR) $(ASM) $(OBJ) $(ASMS) $(OBJS)
+	$(CC) $(CFLAGS) $(SRCS) $(LIBS) -o $@ $(LDFLAGS)
+
+.PHONY: clean
+
+$(ASM)/%.S: $(SRC)/%.c $(SRC)/%.h
+	$(CC) $(CFLAGS) -S $< -o $@
+
+$(ASM)/%.S: $(SRC)/%.c
+	$(CC) $(CFLAGS) -S $< -o $@
+
+$(OBJ)/%.o: $(SRC)/%.c $(SRC)/%.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJ)/%.o: $(SRC)/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJ):
+	mkdir $@
+
+$(ASM):
+	mkdir $@
+
+$(LIBDIR):
+	mkdir $@
+
+$(BUILD_DIR):
+	mkdir $@
+
+clean:
+	$(RM) -r $(OBJ) $(TARGET_PATH)
