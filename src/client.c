@@ -32,5 +32,4 @@ client_start(void)
 void
 client_stop(void)
 {
-
 }

@@ -10,57 +10,6 @@
 
 #include "file.h"
 
-#define FILE_READ_FUNC_CREATE(type) \
-    type file_read_##type(FileData *file) \
-    { \
-        type i; \
-        \
-        if (file->head + sizeof(type) > file->size) { \
-            atra_log_print(LOG_WARN, \
-                    "file: Read overrun when reading type: " #type); \
-            return 0; \
-        } else { \
-            i = *(type *)(file->data + file->head); \
-            file->head += sizeof(type); \
-        } \
-        \
-        return i; \
-    }
-
-#define FILE_READ_ARRAY_FUNC_CREATE(type) \
-    void file_read_##type##_array(FileData *file, size_t n, type *data) \
-    { \
-        if (file->head + n * sizeof(type) > file->size) { \
-            atra_log_print(LOG_WARN, \
-                    "file: Read overrun when reading array of type: " #type); \
-            return; \
-        } \
-        memcpy(data, file->data + file->head, n * sizeof(type)); \
-        file->head += n * sizeof(type); \
-    }
-
-#define FILE_WRITE_FUNC_CREATE(type) \
-    void file_write_##type(FileData *file, type data) \
-    { \
-        if (file->head + sizeof(type) > file->cap) { \
-            file_grow(file); \
-        } \
-        *(type *)(file->data + file->head) = data; \
-        file->head += sizeof(type); \
-        file->size = MAX(file->head, file->size); \
-    }
-
-#define FILE_WRITE_ARRAY_FUNC_CREATE(type) \
-    void file_write_##type##_array(FileData *file, size_t n, const type *data) \
-    { \
-        while (file->head + n * sizeof(type) > file->cap) { \
-            file_grow(file); \
-        } \
-        memcpy(file->data + file->head, data, n * sizeof(type)); \
-        file->head += n * sizeof(type); \
-    }
-
-
 /* Creates a new file data structure with given size.
  * Size of 0 falls back to defaults.
  * It is preferable to use sizes of 2^n, but not essential.
@@ -141,6 +90,61 @@ file_rewind(FileData *file)
 {
     file->head = 0;
 }
+
+/* Reads a string from file and returns a newly allocated string */
+char *
+file_read_string(FileData *file)
+{
+    const uint length = file_read_uint(file);
+    char *str;
+
+    if (length == 0) {
+        return NULL;
+    }
+
+    if (file->head + length * sizeof(char) > file->size) {
+        atra_log_print(LOG_WARN, "file: Read overrun when reading string");
+        return NULL;
+    }
+    str = malloc((length + 1) * sizeof(char));
+    memcpy(str, file->data + file->head, length * sizeof(char));
+    str[length] = '\0';
+    file->head += length * sizeof(char);
+
+    return str;
+}
+
+/* Writes a given string to the file. It is safe to pass a NULL string */
+void
+file_write_string(FileData *file, const char *str)
+{
+    if (str == NULL) {
+        file_write_uint(file, 0);
+        return;
+    }
+
+    const uint length = strlen(str);
+    
+    file_write_uint(file, length);
+
+    if (length == 0) {
+        return;
+    }
+    
+    while (file->head + length * sizeof(char) > file->cap) {
+        file_grow(file);
+    }
+    memcpy(file->data + file->head, str, length * sizeof(char));
+    file->head += length * sizeof(char);
+}
+
+/* Writes a placeholder zero-length string that will return NULL when read */
+void
+file_write_string_empty(FileData *file)
+{
+    file_write_uint(file, 0);
+}
+
 
 /* Returns 1 if the given byte is at the read/write head, otherwise 0 */
 int

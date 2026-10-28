@@ -25,6 +25,55 @@
 #define FILE_WRITE_ARRAY_FUNC_DECLARE(type) \
     void file_write_##type##_array(FileData *file, size_t n, const type *data);
 
+#define FILE_READ_FUNC_CREATE(type) \
+    type file_read_##type(FileData *file) \
+    { \
+        type i = {0}; \
+        \
+        if (file->head + sizeof(type) > file->size) { \
+            atra_log_print(LOG_WARN, \
+                    "file: Read overrun when reading type: " #type); \
+        } else { \
+            i = *(type *)(file->data + file->head); \
+            file->head += sizeof(type); \
+        } \
+        \
+        return i; \
+    }
+
+#define FILE_READ_ARRAY_FUNC_CREATE(type) \
+    void file_read_##type##_array(FileData *file, size_t n, type *data) \
+    { \
+        if (file->head + n * sizeof(type) > file->size) { \
+            atra_log_print(LOG_WARN, \
+                    "file: Read overrun when reading array of type: " #type); \
+            return; \
+        } \
+        memcpy(data, file->data + file->head, n * sizeof(type)); \
+        file->head += n * sizeof(type); \
+    }
+
+#define FILE_WRITE_FUNC_CREATE(type) \
+    void file_write_##type(FileData *file, type data) \
+    { \
+        if (file->head + sizeof(type) > file->cap) { \
+            file_grow(file); \
+        } \
+        *(type *)(file->data + file->head) = data; \
+        file->head += sizeof(type); \
+        file->size = MAX(file->head, file->size); \
+    }
+
+#define FILE_WRITE_ARRAY_FUNC_CREATE(type) \
+    void file_write_##type##_array(FileData *file, size_t n, const type *data) \
+    { \
+        while (file->head + n * sizeof(type) > file->cap) { \
+            file_grow(file); \
+        } \
+        memcpy(file->data + file->head, data, n * sizeof(type)); \
+        file->head += n * sizeof(type); \
+    }
+
 typedef struct FileData {
     size_t cap;     /* Current maximum size */
     size_t size;    /* Current number of bytes in file */
@@ -57,6 +106,14 @@ void file_grow(FileData *file);
 /* Sets the read/write head back to the start of the file */
 void file_rewind(FileData *file);
 
+/* Reads a string from file and returns a newly allocated string */
+char * file_read_string(FileData *file);
+
+/* Writes a given string to the file */
+void file_write_string(FileData *file, const char *str);
+
+/* Writes a placeholder zero-length string that will return NULL when read */
+void file_write_string_empty(FileData *file);
 
 /*
  *  Parsing functions

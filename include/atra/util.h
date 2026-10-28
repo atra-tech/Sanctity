@@ -13,6 +13,54 @@
 #include "common.h"
 #include "memory.h"
 
+/*
+ *  Safety and signalling utilities
+ */
+
+/* Option for types which do not have a sentinel value but may not return properly */
+#define ATRA_OPTION_DECLARE(type) \
+typedef struct Option_##type { \
+    type some; \
+    int none; \
+} Option_##type; \
+\
+Option_##type atra_option_##type##_error(void); \
+Option_##type atra_option_##type##_ok(type x);
+
+
+#define ATRA_OPTION_DEFINE(type) \
+\
+Option_##type atra_option_##type##_error(void) { \
+    return (Option_##type) { .none = 1 }; \
+} \
+\
+Option_##type atra_option_##type##_ok(type x) { \
+    return (Option_##type) { .none = 0, .some = x }; \
+} \
+
+ATRA_OPTION_DECLARE(char)
+ATRA_OPTION_DECLARE(uchar)
+ATRA_OPTION_DECLARE(short)
+ATRA_OPTION_DECLARE(ushort)
+ATRA_OPTION_DECLARE(int)
+ATRA_OPTION_DECLARE(uint)
+ATRA_OPTION_DECLARE(long)
+ATRA_OPTION_DECLARE(ulong)
+
+ATRA_OPTION_DECLARE(i8)
+ATRA_OPTION_DECLARE(u8)
+ATRA_OPTION_DECLARE(i16)
+ATRA_OPTION_DECLARE(u16)
+ATRA_OPTION_DECLARE(i32)
+ATRA_OPTION_DECLARE(u32)
+ATRA_OPTION_DECLARE(i64)
+ATRA_OPTION_DECLARE(u64)
+ATRA_OPTION_DECLARE(usize)
+
+ATRA_OPTION_DECLARE(float)
+ATRA_OPTION_DECLARE(double)
+ATRA_OPTION_DECLARE(f32)
+ATRA_OPTION_DECLARE(f64)
 
 /*
  *  Filesystem utilities
@@ -33,9 +81,6 @@ ATRA_API int atra_util_fileexists(const char *path);
 
 /* Returns 1 if the directory at the given path exists, otherwise 0 */
 ATRA_API int atra_util_direxists(const char *path);
-
-/* Returns 1 if the given file is a directory, otherwise 0 */
-#define atra_util_isdir(path) atra_util_direxists(path)
 
 /* Returns 1 if the given file has the specified extension, otherwise 0 */
 ATRA_API int atra_util_filehasext(const char *path, const char *ext);
@@ -215,5 +260,9 @@ ATRA_API void atra_util_sdl_printerror(void);
 
 /* Opens the given URL in the default browser (if available) */
 ATRA_API void atra_util_openurl(const char *url);
+
+/* Returns the number of logical CPU cores */
+ATRA_API int atra_util_getcorecount(void);
+
 
 #endif /* ATRA_UTIL_H */

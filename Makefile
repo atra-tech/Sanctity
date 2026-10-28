@@ -1,4 +1,4 @@
-TARGET=gem-defence
+TARGET=sanctity
 
 CC=gcc
 
@@ -12,18 +12,22 @@ OBJS=$(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SRCS))
 ASMS=$(patsubst $(SRC)/%.c, $(ASM)/%.S, $(SRCS))
 
 LIBDIR=lib
-LIBS=$(LIBDIR)/atra.a $(LIBDIR)/liblua.a
+LIBS=$(LIBDIR)/libatra.a $(LIBDIR)/liblua.a
 
 HEADER_FLAGS=-Iinclude/atra -Iinclude/lua
 
 INC_DIRS=$(shell find $(SRC) -type d)
 INC_FLAGS=$(addprefix -I,$(INC_DIRS))
 
+
+WARNFLAGS=-Wall -Wno-missing-braces -Wextra -Wno-missing-field-initializers -Wformat=2 \
+		-Wpointer-arith -Wundef -Wnested-externs -Wshadow -Wunreachable-code \
+		-Wlogical-op -Wstrict-aliasing=2 -Wredundant-decls -Wunused
 LDFLAGS=-lm -ldl -lSDL2 -lSDL2_image -lSDL2_net -lGL -lopenal
-CFLAGS=$(INC_FLAGS) $(HEADER_FLAGS) -MP -MMD -Og -Wall -Wextra -Wpedantic -g -std=c99
+CFLAGS=$(INC_FLAGS) $(HEADER_FLAGS) -MP -MMD -Og $(WARNFLAGS) -Wpedantic -g -std=c99
 
 $(BUILD_DIR)/$(TARGET): $(BUILD_DIR) $(ASM) $(OBJ) $(ASMS) $(OBJS)
-	$(CC) $(CFLAGS) $(SRCS) $(LIBS) -o $@ $(LDFLAGS)
+	$(CC) $(CFLAGS) $(OBJS) $(LIBS) -o $@ $(LDFLAGS)
 
 .PHONY: clean
 
